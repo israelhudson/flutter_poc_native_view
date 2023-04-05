@@ -5,31 +5,35 @@ import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
+
 class MainActivity: FlutterActivity() {
     private val CHANNEL = "com.example.my_flutter_app/native_view"
 
-    private lateinit var nativeView: NativeView
+    // Adicione esta linha para criar uma variável lateinit para o MethodChannel
+    private lateinit var methodChannel: MethodChannel
 
     override fun configureFlutterEngine(@NonNull flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
-        nativeView = NativeView(this@MainActivity)
+
+        val nativeView = NativeView(this@MainActivity)
+
+        // Configurar o nativeView.onCounterChanged
+        nativeView.onCounterChanged = { counter ->
+            methodChannel.invokeMethod("onCounterChanged", counter)
+        }
+
         flutterEngine.platformViewsController.registry.registerViewFactory("native_view", NativeViewFactory(nativeView))
 
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
+        methodChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL)
+        methodChannel.setMethodCallHandler { call, result ->
             when (call.method) {
                 "createView" -> {
-                    result.success(0) // Devolvemos 0 como identificador
-                }
-                "updateText" -> {
-                    val text = call.argument<String>("text")
-                    text?.let {
-                        nativeView.setText(it)
-                        result.success(null)
-                    } ?: result.error("INVALID_ARGUMENT", "Text is null", null)
+                    result.success(0) // Retornamos 0 como identificador
                 }
                 else -> result.notImplemented()
             }
         }
     }
 }
+
 
